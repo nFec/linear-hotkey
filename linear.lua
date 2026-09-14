@@ -28,11 +28,14 @@ function M.start(opts)
 
   chooser:placeholderText("Linear ticket ID, e.g. HC-1437")
   chooser:searchSubText(false)
+  chooser:bgDark(true)
+  chooser:fgColor({ white = 0.95 })
   chooser:rows(1)
-  chooser:width(30)
+  chooser:width(18)
 
   -- The chooser filters its choices against the query, so every row text
-  -- starts with the uppercased query and always matches.
+  -- starts with the uppercased query and always matches. No subText: a
+  -- two-line row does not fit the rows(1) window height and gets clipped.
   chooser:queryChangedCallback(function(query)
     local shown = query:upper()
     local id = trim(shown)
@@ -40,16 +43,9 @@ function M.start(opts)
     if id == "" then
       chooser:choices({})
     elseif id:match("^%u+%-%d+$") then
-      chooser:choices({ {
-        text = shown .. "  open",
-        subText = urlFor(id),
-        ticket = id,
-      } })
+      chooser:choices({ { text = shown, ticket = id } })
     else
-      chooser:choices({ {
-        text = shown .. "  (not a ticket ID)",
-        subText = "Format: HC-1437, ORG-253, LIN-1498",
-      } })
+      chooser:choices({ { text = shown .. "   no such ticket format" } })
     end
   end)
 
