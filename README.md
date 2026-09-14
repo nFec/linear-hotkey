@@ -1,9 +1,18 @@
 # linear-hotkey
 
-Press a hotkey, type a Linear ticket ID, hit Enter. The ticket opens in your
+`alt+space`, type a Linear ticket ID, press Enter. The ticket opens in your
 default browser. macOS only, runs on [Hammerspoon](https://www.hammerspoon.org/).
 
-Default hotkey: `alt+space`.
+```
+┌──────────────────────────────────────────┐
+│  HC-1437                                 │
+│  linear.app/hmmc/issue/HC-1437           │
+└──────────────────────────────────────────┘
+```
+
+The grey line shows the URL that Enter will open. Esc closes the panel, so does
+clicking somewhere else. Type the full ID with the team prefix, lowercase is
+fine. Anything else is rejected and Enter does nothing.
 
 ## Install
 
@@ -13,34 +22,21 @@ git clone git@github.com:nFec/linear-hotkey.git
 ./linear-hotkey/install.sh
 ```
 
-Then:
-
-1. `open -a Hammerspoon`
-2. Allow Hammerspoon in System Settings > Privacy & Security > Accessibility.
-3. Hammerspoon menu bar icon > Reload Config.
-4. Turn on "Launch Hammerspoon at login" in the Hammerspoon preferences.
+Then start Hammerspoon, allow it under System Settings > Privacy & Security >
+Accessibility, and pick "Reload Config" from its menu bar icon. Turn on "Launch
+Hammerspoon at login" while you are in there.
 
 `install.sh` symlinks `linear.lua` into `~/.hammerspoon/` and appends one line to
-your `init.lua`. A `git pull` is enough to update, no reinstall.
-
-## Use
-
-`alt+space` opens a one line panel. Type `HC-1437`, press Enter, the ticket
-opens. The grey line below the input shows the URL that Enter will open.
-
-Type the full ID including the team prefix. `HC-1437`, `ORG-253`, `LIN-1498` all
-work, lowercase is fine. Anything else is rejected and Enter does nothing. Esc
-closes the panel, so does clicking somewhere else.
+your `init.lua`. A `git pull` is enough to update.
 
 ## Config
 
-The settings live in your own `~/.hammerspoon/init.lua`, so a `git pull` never
-overwrites them.
+In your own `~/.hammerspoon/init.lua`, so a `git pull` never overwrites it:
 
 ```lua
 require("linear").start({
-  workspace = "hmmc",        -- the part after linear.app/ in your URLs
-  mods = { "alt" },          -- "cmd", "ctrl", "alt", "shift"
+  workspace = "hmmc",   -- the part after linear.app/ in your URLs
+  mods = { "alt" },     -- "cmd", "ctrl", "alt", "shift"
   key = "space",
 })
 ```
@@ -49,6 +45,5 @@ For a different workspace on first install: `LINEAR_WORKSPACE=acme ./install.sh`
 
 ## Limits
 
-The tool always opens a new tab. It cannot reuse a tab that already shows the
-ticket. Firefox does not expose its open tabs to other apps, and no app can
-activate a Firefox tab from the outside.
+It always opens a new tab and cannot reuse one that already shows the ticket.
+Firefox does not expose its tabs to other apps.
