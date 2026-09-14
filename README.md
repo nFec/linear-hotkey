@@ -9,7 +9,7 @@ Default hotkey: `alt+space`.
 
 ```bash
 brew install --cask hammerspoon
-git clone git@github.com:h8c/linear-hotkey.git
+git clone git@github.com:nFec/linear-hotkey.git
 ./linear-hotkey/install.sh
 ```
 
