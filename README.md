@@ -1,7 +1,8 @@
 # linear-hotkey
 
 `alt+space`, type a Linear ticket ID, press Enter. The ticket opens in your
-default browser. macOS only, runs on [Hammerspoon](https://www.hammerspoon.org/).
+default browser. macOS only, runs on [Hammerspoon](https://www.hammerspoon.org/)
+as a Spoon.
 
 ```
 ┌──────────────────────────────────────────┐
@@ -16,32 +17,55 @@ fine. Anything else is rejected and Enter does nothing.
 
 ## Install
 
-```bash
-brew install --cask hammerspoon
-git clone git@github.com:nFec/linear-hotkey.git
-./linear-hotkey/install.sh
-```
-
-Then start Hammerspoon, allow it under System Settings > Privacy & Security >
-Accessibility, and pick "Reload Config" from its menu bar icon. Turn on "Launch
-Hammerspoon at login" while you are in there.
-
-`install.sh` symlinks `linear.lua` into `~/.hammerspoon/` and appends one line to
-your `init.lua`. A `git pull` is enough to update.
-
-## Config
-
-In your own `~/.hammerspoon/init.lua`, so a `git pull` never overwrites it:
+`brew install --cask hammerspoon`, then put this in `~/.hammerspoon/init.lua`:
 
 ```lua
-require("linear").start({
-  workspace = "hmmc",   -- the part after linear.app/ in your URLs
-  mods = { "alt" },     -- "cmd", "ctrl", "alt", "shift"
-  key = "space",
+hs.loadSpoon("SpoonInstall")
+spoon.SpoonInstall.repos.hmmc = {
+  url = "https://github.com/nFec/linear-hotkey",
+  desc = "linear-hotkey",
+  branch = "main",
+}
+spoon.SpoonInstall:andUse("LinearHotkey", {
+  repo = "hmmc",
+  config = { workspace = "hmmc" },
+  hotkeys = { show = { { "alt" }, "space" } },
+  start = true,
 })
 ```
 
-For a different workspace on first install: `LINEAR_WORKSPACE=acme ./install.sh`.
+Hammerspoon installs the Spoon on the next reload. It needs
+[SpoonInstall](https://www.hammerspoon.org/Spoons/SpoonInstall.html) once:
+download the zip, double click it.
+
+Without SpoonInstall: download
+[LinearHotkey.spoon.zip](https://github.com/nFec/linear-hotkey/raw/main/Spoons/LinearHotkey.spoon.zip),
+double click it, then `hs.loadSpoon("LinearHotkey")` plus `bindHotkeys` and
+`start` by hand.
+
+Hammerspoon also needs to be allowed under System Settings > Privacy & Security
+> Accessibility.
+
+## Config
+
+* `workspace` - the part after `linear.app/` in your ticket URLs. Default `hmmc`.
+* `checkForUpdates` - checks this repo for a newer version, at most once a day,
+  and installs it if SpoonInstall is loaded. Default `true`. The check sends
+  nothing about you or your usage, it is a plain GET of `docs/docs.json`.
+* `bindHotkeys` takes one key, `show`.
+
+## Develop and release
+
+Run Hammerspoon straight from a checkout, no install, no copy:
+
+```lua
+package.path = package.path .. ";" .. os.getenv("HOME") .. "/code/linear-hotkey/Source/?.spoon/init.lua"
+hs.loadSpoon("LinearHotkey")
+```
+
+`./build.sh` bumps nothing, it just packs `Source/LinearHotkey.spoon` into
+`Spoons/` and writes the catalog `docs/docs.json` that SpoonInstall reads. To
+release: raise `obj.version` in the Spoon, run `./build.sh`, commit, push.
 
 ## Limits
 
