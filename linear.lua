@@ -1,4 +1,4 @@
--- Linear Quick Open: hotkey opens a small input window for a ticket ID
+-- Linear Quick Open: a hotkey opens a one-line input window for a ticket ID
 -- and opens that ticket in the default browser.
 --
 -- Usage in ~/.hammerspoon/init.lua:
@@ -6,9 +6,88 @@
 
 local M = {}
 
-local function trim(s)
-  return (s:gsub("^%s+", ""):gsub("%s+$", ""))
-end
+local WIDTH = 520
+local HEIGHT = 86
+
+local HTML = [[
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    font: 400 15px -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    background: rgba(28, 28, 30, 0.97);
+    color: #f2f2f7;
+    border: 0.5px solid rgba(255, 255, 255, 0.14);
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    -webkit-user-select: none;
+  }
+  #q {
+    width: 100%;
+    padding: 0 20px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: inherit;
+    font: 500 27px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    -webkit-user-select: auto;
+  }
+  #q::placeholder { color: #636366; font-weight: 400; }
+  #hint {
+    padding: 7px 21px 0;
+    font-size: 12px;
+    color: #8e8e93;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  @media (prefers-color-scheme: light) {
+    body { background: rgba(246, 246, 248, 0.97); color: #1c1c1e;
+           border-color: rgba(0, 0, 0, 0.12); }
+    #q::placeholder { color: #aeaeb2; }
+    #hint { color: #8e8e93; }
+  }
+</style>
+<input id="q" placeholder="__PLACEHOLDER__" autocomplete="off" spellcheck="false">
+<div id="hint"></div>
+<script>
+  var WORKSPACE = "__WORKSPACE__";
+  var q = document.getElementById("q");
+  var hint = document.getElementById("hint");
+
+  function ticketId() { return q.value.trim().toUpperCase(); }
+  function isValid(id) { return /^[A-Z]+-[0-9]+$/.test(id); }
+
+  function render() {
+    var id = ticketId();
+    if (id === "") { hint.textContent = "HC-1437, ORG-253, LIN-1498"; }
+    else if (isValid(id)) { hint.textContent = "linear.app/" + WORKSPACE + "/issue/" + id; }
+    else { hint.textContent = "not a ticket ID"; }
+  }
+
+  function post(message) {
+    try { webkit.messageHandlers.linear.postMessage(message); } catch (e) {}
+  }
+
+  q.addEventListener("input", render);
+  q.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      var id = ticketId();
+      if (isValid(id)) { post({ action: "open", id: id }); }
+    } else if (e.key === "Escape") {
+      post({ action: "close" });
+    }
+  });
+
+  window.reset = function () { q.value = ""; render(); q.focus(); q.select(); };
+  render();
+  q.focus();
+</script>
+]]
 
 function M.start(opts)
   opts = opts or {}
@@ -16,45 +95,52 @@ function M.start(opts)
   local mods = opts.mods or { "alt" }
   local key = opts.key or "space"
 
-  local function urlFor(id)
-    return string.format("https://linear.app/%s/issue/%s", workspace, id)
+  local controller = hs.webview.usercontent.new("linear")
+  local view
+
+  local function hide()
+    view:hide()
   end
 
-  local chooser = hs.chooser.new(function(choice)
-    if choice and choice.ticket then
-      hs.urlevent.openURL(urlFor(choice.ticket))
+  controller:setCallback(function(message)
+    local body = message.body or message
+    if type(body) ~= "table" then return end
+    if body.action == "open" and body.id then
+      hide()
+      hs.urlevent.openURL(string.format("https://linear.app/%s/issue/%s", workspace, body.id))
+    elseif body.action == "close" then
+      hide()
     end
   end)
 
-  chooser:placeholderText("Linear ticket ID, e.g. HC-1437")
-  chooser:searchSubText(false)
-  chooser:bgDark(true)
-  chooser:fgColor({ white = 0.95 })
-  chooser:rows(1)
-  chooser:width(18)
+  local screen = hs.screen.mainScreen():frame()
+  local rect = hs.geometry.rect(
+    screen.x + (screen.w - WIDTH) / 2,
+    screen.y + screen.h * 0.22,
+    WIDTH,
+    HEIGHT
+  )
 
-  -- The chooser filters its choices against the query, so every row text
-  -- starts with the uppercased query and always matches. No subText: a
-  -- two-line row does not fit the rows(1) window height and gets clipped.
-  chooser:queryChangedCallback(function(query)
-    local shown = query:upper()
-    local id = trim(shown)
+  view = hs.webview.new(rect, { developerExtrasEnabled = false }, controller)
+  view:windowStyle({ "borderless" })
+  view:allowTextEntry(true)
+  view:transparent(true)
+  view:shadow(true)
+  view:level(hs.drawing.windowLevels.modalPanel)
+  view:html((HTML:gsub("__WORKSPACE__", workspace):gsub("__PLACEHOLDER__", "HC-1437")))
 
-    if id == "" then
-      chooser:choices({})
-    elseif id:match("^%u+%-%d+$") then
-      chooser:choices({ { text = shown, ticket = id } })
-    else
-      chooser:choices({ { text = shown .. "   no such ticket format" } })
-    end
+  -- Close as soon as the panel loses focus, the way a launcher behaves.
+  view:windowCallback(function(action, _, state)
+    if action == "focusChange" and state == false then hide() end
   end)
 
   hs.hotkey.bind(mods, key, function()
-    chooser:query("")
-    chooser:show()
+    view:show()
+    view:bringToFront(true)
+    view:evaluateJavaScript("window.reset && window.reset()")
   end)
 
-  return chooser
+  return view
 end
 
 return M

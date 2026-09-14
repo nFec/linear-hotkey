@@ -25,12 +25,12 @@ your `init.lua`. A `git pull` is enough to update, no reinstall.
 
 ## Use
 
-`alt+space`, type `HC-1437`, Enter. That opens
-`https://linear.app/hmmc/issue/HC-1437`.
+`alt+space` opens a one line panel. Type `HC-1437`, press Enter, the ticket
+opens. The grey line below the input shows the URL that Enter will open.
 
 Type the full ID including the team prefix. `HC-1437`, `ORG-253`, `LIN-1498` all
 work, lowercase is fine. Anything else is rejected and Enter does nothing. Esc
-closes the window.
+closes the panel, so does clicking somewhere else.
 
 ## Config
 
