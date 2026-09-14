@@ -12,6 +12,7 @@ local HEIGHT = 86
 local HTML = [[
 <meta charset="utf-8">
 <style>
+  :root { color-scheme: dark; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body { height: 100%; }
   body {
@@ -36,7 +37,6 @@ local HTML = [[
     font: 500 27px -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
     -webkit-user-select: auto;
   }
-  #q::placeholder { color: #636366; font-weight: 400; }
   #hint {
     padding: 7px 21px 0;
     font-size: 12px;
@@ -45,14 +45,8 @@ local HTML = [[
     overflow: hidden;
     text-overflow: ellipsis;
   }
-  @media (prefers-color-scheme: light) {
-    body { background: rgba(246, 246, 248, 0.97); color: #1c1c1e;
-           border-color: rgba(0, 0, 0, 0.12); }
-    #q::placeholder { color: #aeaeb2; }
-    #hint { color: #8e8e93; }
-  }
 </style>
-<input id="q" placeholder="__PLACEHOLDER__" autocomplete="off" spellcheck="false">
+<input id="q" autocomplete="off" spellcheck="false">
 <div id="hint"></div>
 <script>
   var WORKSPACE = "__WORKSPACE__";
@@ -64,7 +58,7 @@ local HTML = [[
 
   function render() {
     var id = ticketId();
-    if (id === "") { hint.textContent = "HC-1437, ORG-253, LIN-1498"; }
+    if (id === "") { hint.textContent = ""; }
     else if (isValid(id)) { hint.textContent = "linear.app/" + WORKSPACE + "/issue/" + id; }
     else { hint.textContent = "not a ticket ID"; }
   }
@@ -127,7 +121,7 @@ function M.start(opts)
   view:transparent(true)
   view:shadow(true)
   view:level(hs.drawing.windowLevels.modalPanel)
-  view:html((HTML:gsub("__WORKSPACE__", workspace):gsub("__PLACEHOLDER__", "HC-1437")))
+  view:html((HTML:gsub("__WORKSPACE__", workspace)))
 
   -- Close as soon as the panel loses focus, the way a launcher behaves.
   view:windowCallback(function(action, _, state)
@@ -136,7 +130,10 @@ function M.start(opts)
 
   hs.hotkey.bind(mods, key, function()
     view:show()
-    view:bringToFront(true)
+    -- bringToFront(true) would raise the panel to screen saver level, where it
+    -- no longer takes keyboard focus. Activating the app makes it the key window.
+    local app = hs.application.get("Hammerspoon")
+    if app then app:activate() end
     view:evaluateJavaScript("window.reset && window.reset()")
   end)
 
